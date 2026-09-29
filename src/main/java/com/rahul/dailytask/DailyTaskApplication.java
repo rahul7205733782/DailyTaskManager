@@ -13,7 +13,7 @@ public class DailyTaskApplication {
         SpringApplication.run(DailyTaskApplication.class, args);
         System.out.println("====================================");
         System.out.println(" Daily Task Manager Started ");
-        System.out.println(" URL :http://localhost:8080 ");
+        System.out.println(" URL Local :http://localhost:8080 ");
         System.out.println(" Dashboard Monitor: http://localhost:8080/dashboard-monitor.html");
         System.out.println(" API: http://localhost:8080/api/dashboard-monitor");
         System.out.println(" Scheduler: Running every 5 minutes");
