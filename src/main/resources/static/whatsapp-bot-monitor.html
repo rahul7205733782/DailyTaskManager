@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoiceOC · WhatsApp Bot Monitor</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- DataTables -->
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <!-- SESSION MANAGER -->
+    <script src="js/session-manager.js"></script>
+
+    <style>
+        /* ========================================= */
+        /* GLOBAL & ANIMATIONS                       */
+        /* ========================================= */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #F1F5F9;
+            overflow-x: hidden;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes checkingPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ========================================= */
+        /* DARK MODE                                 */
+        /* ========================================= */
+        .dark-mode { background: #020617 !important; color: #F8FAFC !important; }
+        .dark-mode .top-nav, .dark-mode .stat-card, .dark-mode .table-card, .dark-mode .meter-card, .dark-mode .chart-card {
+            background: #111827 !important; color: #F8FAFC !important; border-color: #1E293B !important;
+        }
+        .dark-mode .top-nav .page-title h3, .dark-mode .top-nav .page-title p { color: #F8FAFC !important; }
+        .dark-mode .top-nav .user-badge, .dark-mode .top-nav .refresh-btn { background: #1E293B !important; color: #F8FAFC !important; }
+        .dark-mode .top-nav .refresh-btn:hover { background: #334155 !important; }
+        .dark-mode .stat-card .stat-label { color: #94A3B8 !important; }
+        .dark-mode .stat-card .stat-value { color: #F8FAFC !important; }
+        .dark-mode .table-card h5, .dark-mode .table-card .badge, .dark-mode .meter-card h5, .dark-mode .chart-card h5 { color: #F8FAFC !important; }
+        .dark-mode .table-card .badge.bg-primary { background: #1E3A5F !important; color: #60A5FA !important; }
+        .dark-mode table thead th { background: #0F172A !important; color: #94A3B8 !important; border-bottom-color: #1E293B !important; }
+        .dark-mode table tbody td { background: #111827 !important; color: #E2E8F0 !important; border-bottom-color: #1E293B !important; }
+        .dark-mode table tbody tr:hover td { background: #1E293B !important; }
+        .dark-mode .status-badge.up { background: #065F46 !important; color: #34D399 !important; }
+        .dark-mode .status-badge.down { background: #7F1D1D !important; color: #F87171 !important; }
+        .dark-mode .status-badge.checking { background: #78350F !important; color: #FBBF24 !important; }
+        .dark-mode .btn-outline-danger { color: #F87171 !important; border-color: #7F1D1D !important; }
+        .dark-mode .btn-outline-danger:hover { background: #7F1D1D !important; color: #FCA5A5 !important; }
+        .dark-mode .modal-content { background: #111827 !important; border-color: #1E293B !important; }
+        .dark-mode .modal-header-primary { background: linear-gradient(95deg, #0F172A 0%, #020617 100%) !important; }
+        .dark-mode .modal-header-primary .modal-title { color: #F8FAFC !important; }
+        .dark-mode .modal-body { background: #111827 !important; color: #F8FAFC !important; }
+        .dark-mode .modal-body .form-label { color: #94A3B8 !important; }
+        .dark-mode .modal-body .form-control { background: #1E293B !important; color: #F8FAFC !important; border-color: #334155 !important; }
+        .dark-mode .modal-body .input-group .btn-outline-secondary { background: #1E293B !important; color: #F8FAFC !important; border-color: #334155 !important; }
+        .dark-mode .modal-body .text-muted { color: #94A3B8 !important; }
+        .dark-mode .modal-footer { background: #111827 !important; border-top-color: #1E293B !important; }
+        .dark-mode .modal-footer .btn-secondary { background: #1E293B !important; border-color: #334155 !important; color: #F8FAFC !important; }
+        .dark-mode .modal-footer .btn-primary { background: #0D9488 !important; border-color: #0D9488 !important; color: white !important; }
+        .dark-mode .toast-msg { background: #1E293B !important; color: #F8FAFC !important; }
+        .dark-mode .view-dropdown .btn { background: #1E293B !important; color: #F8FAFC !important; border-color: #334155 !important; }
+        .dark-mode .view-dropdown .dropdown-menu { background: #1E293B !important; border-color: #334155 !important; }
+        .dark-mode .view-dropdown .dropdown-item { color: #F8FAFC !important; }
+        .dark-mode .view-dropdown .dropdown-item:hover, .dark-mode .view-dropdown .dropdown-item.active { background: #334155 !important; }
+        .dark-mode .meter-item { background: linear-gradient(145deg, #1E293B, #111827) !important; border-color: #334155 !important; }
+        .dark-mode .meter-item .client-name { color: #F8FAFC !important; }
+        .dark-mode .meter-item .meter-bar { background: #334155 !important; }
+        .dark-mode .dataTables_wrapper .dataTables_paginate .paginate_button { background: #1E293B !important; border-color: #334155 !important; color: #F8FAFC !important; }
+        .dark-mode .dataTables_wrapper .dataTables_paginate .paginate_button.current { background: #0D9488 !important; border-color: #0D9488 !important; color: white !important; }
+        .dark-mode .dataTables_wrapper .dataTables_length select, .dark-mode .dataTables_wrapper .dataTables_filter input { background: #1E293B !important; border-color: #334155 !important; color: #F8FAFC !important; }
+        .dark-mode .dataTables_wrapper .dataTables_info { color: #94A3B8 !important; }
+
+        /* ========================================= */
+        /* SIDEBAR                                   */
+        /* ========================================= */
+        .sidebar {
+            width: 280px; height: 100vh;
+            background: linear-gradient(180deg, #0F172A 0%, #020617 100%);
+            position: fixed; left: 0; top: 0;
+            padding-top: 25px; transition: 0.3s; z-index: 999; overflow-y: auto;
+        }
+        .logo-area { text-align: center; margin-bottom: 35px; padding: 0 20px; }
+        .logo-area h2 { color: white; font-weight: 800; font-size: 1.7rem; margin: 0; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .logo-area h2 i { color: #2DD4BF; font-size: 1.8rem; }
+        .qa-tagline { color: #10B981 !important; font-weight: 700 !important; font-size: 11px !important; letter-spacing: 2px; margin-top: 8px; text-align: center; text-transform: uppercase; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 10px; }
+        .qa-tagline .tick-icon { color: #10B981; font-size: 12px; flex-shrink: 0; }
+        .nav-item { display: flex; align-items: center; gap: 15px; color: #94A3B8; margin: 4px 12px; padding: 12px 18px; border-radius: 14px; cursor: pointer; transition: 0.3s; }
+        .nav-item:hover { background: rgba(45, 212, 191, 0.12); color: white; transform: translateX(6px); }
+        .nav-item.active { background: linear-gradient(95deg, #0D9488, #0F766E); color: white; }
+        .nav-item i { width: 24px; font-size: 18px; }
+
+        /* ========================================= */
+        /* MAIN CONTENT - FULL WIDTH                 */
+        /* ========================================= */
+        .main-content { 
+            margin-left: 280px; 
+            padding: 30px; 
+            transition: 0.3s; 
+            width: calc(100% - 280px);
+            min-height: 100vh;
+        }
+        
+        .top-nav {
+            background: white; padding: 18px 25px; border-radius: 24px;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 30px; border: 1px solid #E2E8F0; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+            flex-wrap: wrap; gap: 10px; transition: background 0.3s ease, border-color 0.3s ease;
+        }
+        .page-title h3 { margin: 0; font-weight: 800; color: #0F172A; transition: color 0.3s ease; }
+        .page-title p { margin: 5px 0 0; color: #64748B; font-size: 14px; }
+        .top-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .user-badge { background: #F1F5F9; padding: 10px 18px; border-radius: 50px; font-weight: 700; transition: background 0.3s ease, color 0.3s ease; }
+        .refresh-btn { border: none; background: #F1F5F9; padding: 10px 18px; border-radius: 50px; transition: 0.3s; cursor: pointer; font-size: 16px; position: relative; }
+        .refresh-btn:hover { background: #E2E8F0; }
+        .refresh-btn.spinning i { animation: spin 0.8s linear infinite; }
+        .refresh-tooltip { position: absolute; bottom: -32px; left: 50%; transform: translateX(-50%); background: #0F172A; color: white; padding: 4px 12px; border-radius: 6px; font-size: 11px; white-space: nowrap; opacity: 0; pointer-events: none; transition: 0.3s; }
+        .refresh-btn:hover .refresh-tooltip { opacity: 1; }
+
+        /* ========================================= */
+        /* STAT CARDS                                */
+        /* ========================================= */
+        .stat-card {
+            background: white; border-radius: 26px; padding: 28px 25px; position: relative;
+            overflow: hidden; border: 2px solid transparent; transition: all 0.3s ease; cursor: pointer; height: 100%;
+        }
+        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 20px 30px -12px rgba(0, 0, 0, 0.12); }
+        .stat-card .stat-icon { position: absolute; right: 20px; top: 20px; font-size: 50px; opacity: 0.1; }
+        .stat-card .stat-label { color: #64748B; font-size: 12px; font-weight: 700; text-transform: uppercase; margin-bottom: 12px; }
+        .stat-card .stat-value { font-size: 36px; font-weight: 800; color: #0F172A; }
+        .stat-card.active-total { border-color: #3B82F6; box-shadow: 0 0 30px rgba(59, 130, 246, 0.15); background: #EFF6FF !important; }
+        .stat-card.active-up { border-color: #10B981; box-shadow: 0 0 30px rgba(16, 185, 129, 0.15); background: #ECFDF5 !important; }
+        .stat-card.active-down { border-color: #EF4444; box-shadow: 0 0 30px rgba(239, 68, 68, 0.15); background: #FEF2F2 !important; }
+        .stat-card.active-checking { border-color: #F59E0B; box-shadow: 0 0 30px rgba(245, 158, 11, 0.15); background: #FFFBEB !important; }
+        
+        .dark-mode .stat-card.active-total { background: #1E293B !important; border-color: #60A5FA !important; }
+        .dark-mode .stat-card.active-up { background: #1E293B !important; border-color: #34D399 !important; }
+        .dark-mode .stat-card.active-down { background: #1E293B !important; border-color: #F87171 !important; }
+        .dark-mode .stat-card.active-checking { background: #1E293B !important; border-color: #FBBF24 !important; }
+
+        /* ========================================= */
+        /* VIEW DROPDOWN                             */
+        /* ========================================= */
+        .view-dropdown .btn { border-radius: 50px; padding: 8px 20px; font-weight: 600; border: 1px solid #E2E8F0; background: white; transition: 0.3s; }
+        .view-dropdown .btn:hover { background: #F1F5F9; }
+        .view-dropdown .dropdown-menu { border-radius: 16px; border: 1px solid #E2E8F0; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08); padding: 8px; }
+        .view-dropdown .dropdown-item { border-radius: 10px; padding: 10px 16px; font-weight: 500; cursor: pointer; }
+        .view-dropdown .dropdown-item i { margin-right: 10px; width: 20px; }
+
+        /* ========================================= */
+        /* TABLE - FULL WIDTH                        */
+        /* ========================================= */
+        .table-card { 
+            background: white; 
+            border-radius: 26px; 
+            padding: 28px; 
+            border: 1px solid #E2E8F0; 
+            margin-top: 25px; 
+            transition: background 0.3s ease, border-color 0.3s ease;
+            width: 100%;
+            overflow: hidden;
+        }
+        .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 10px; }
+        .table-header h5 { margin: 0; font-weight: 700; }
+        
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table { 
+            width: 100% !important; 
+            min-width: 100%;
+        }
+
+        table thead th { 
+            padding: 16px 15px; 
+            background: #F8FAFC;
+            color: #64748B;
+            font-size: 12px;
+            font-weight: 700;
+            border-bottom: 1px solid #E2E8F0;
+            white-space: nowrap;
+            text-transform: uppercase;
+        }
+
+        table tbody td { 
+            padding: 18px 15px; 
+            vertical-align: middle;
+            border-bottom: 1px solid #E2E8F0;
+            font-size: 14px;
+        }
+
+        table tbody tr:hover td { background: #F8FAFC; }
+
+        /* DataTables Overrides - Force Full Width */
+        .dataTables_wrapper {
+            width: 100% !important;
+        }
+
+        .dataTables_wrapper .dataTables_length, 
+        .dataTables_wrapper .dataTables_filter { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            font-size: 13px; 
+            color: #64748B; 
+            margin-bottom: 15px; 
+        }
+        .dataTables_wrapper .dataTables_length select, 
+        .dataTables_wrapper .dataTables_filter input { 
+            padding: 6px 12px; 
+            border-radius: 8px; 
+            border: 1px solid #E2E8F0; 
+            background: white; 
+            font-size: 13px; 
+            outline: none; 
+        }
+        .dataTables_wrapper .dataTables_filter input:focus { border-color: #0D9488; box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1); }
+        .dataTables_wrapper .dataTables_paginate { display: flex; justify-content: flex-end; gap: 4px; margin-top: 16px; }
+        .dataTables_wrapper .dataTables_paginate .paginate_button { padding: 8px 14px; border-radius: 10px; border: 1px solid #E2E8F0; background: white; color: #0F172A; font-weight: 500; font-size: 13px; cursor: pointer; transition: 0.3s; margin: 0 2px; }
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover { background: #F1F5F9; border-color: #CBD5E1; }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current { background: #0D9488; border-color: #0D9488; color: white; }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.disabled { opacity: 0.4; cursor: not-allowed; }
+        .dataTables_wrapper .dataTables_info { font-size: 13px; color: #64748B; margin-top: 12px; }
+
+        /* Force DataTable table to fill */
+        .dataTables_wrapper table.dataTable {
+            width: 100% !important;
+            margin: 0 !important;
+        }
+
+        /* ========================================= */
+        /* METER VIEW                                */
+        /* ========================================= */
+        .meter-card { background: white; border-radius: 26px; padding: 28px; border: 1px solid #E2E8F0; margin-top: 25px; }
+        .meter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+        .meter-item {
+            background: linear-gradient(145deg, #F8FAFC, #F1F5F9); border-radius: 20px; padding: 20px 16px 16px;
+            text-align: center; border: 1px solid #E2E8F0; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative; overflow: hidden; cursor: pointer;
+        }
+        .meter-item::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; border-radius: 20px 20px 0 0; }
+        .meter-item.up::before { background: linear-gradient(90deg, #10B981, #34D399); }
+        .meter-item.down::before { background: linear-gradient(90deg, #EF4444, #F87171); }
+        .meter-item.checking::before { background: linear-gradient(90deg, #F59E0B, #FBBF24); }
+        .meter-item:hover { transform: translateY(-6px) scale(1.02); box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15); border-color: #CBD5E1; }
+        .meter-item .status-icon { font-size: 28px; margin-bottom: 8px; }
+        .meter-item .status-icon.up { color: #10B981; }
+        .meter-item .status-icon.down { color: #EF4444; }
+        .meter-item .status-icon.checking { color: #F59E0B; }
+        .meter-item .client-name { font-weight: 700; font-size: 14px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #0F172A; }
+        .meter-item .client-sub { font-size: 11px; color: #94A3B8; margin-bottom: 12px; }
+        .meter-item .meter-bar { width: 100%; height: 6px; background: #E2E8F0; border-radius: 10px; overflow: hidden; margin: 8px 0 6px; }
+        .meter-item .meter-fill { height: 100%; border-radius: 10px; transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .meter-item .meter-fill.up { background: linear-gradient(90deg, #10B981, #34D399); }
+        .meter-item .meter-fill.down { background: linear-gradient(90deg, #EF4444, #F87171); }
+        .meter-item .meter-fill.checking { background: linear-gradient(90deg, #F59E0B, #FBBF24); animation: checkingPulse 1.5s ease-in-out infinite; }
+        .meter-item .status-text { font-size: 12px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+        .meter-item .status-label { padding: 2px 10px; border-radius: 20px; font-size: 11px; }
+        .meter-item .status-label.up { background: #D1FAE5; color: #059669; }
+        .meter-item .status-label.down { background: #FEE2E2; color: #DC2626; }
+        .meter-item .status-label.checking { background: #FEF3C7; color: #D97706; }
+        .meter-item .response-time { font-size: 13px; font-weight: 600; color: #0F172A; margin-top: 4px; }
+        .meter-item .response-time small { font-weight: 400; color: #94A3B8; }
+        .meter-item .last-checked { font-size: 10px; color: #94A3B8; margin-top: 4px; }
+        .pulse-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+        .pulse-dot.up { background: #10B981; }
+        .pulse-dot.down { background: #EF4444; }
+        .pulse-dot.checking { background: #F59E0B; animation: checkingPulse 1.5s ease-in-out infinite; }
+
+        /* ========================================= */
+        /* CHART VIEW                                */
+        /* ========================================= */
+        .chart-card { background: white; border-radius: 26px; padding: 28px; border: 1px solid #E2E8F0; margin-top: 25px; }
+        .chart-card .chart-container { position: relative; height: 400px; }
+
+        /* ========================================= */
+        /* STATUS BADGES & BUTTONS                   */
+        /* ========================================= */
+        .status-badge { padding: 6px 16px; border-radius: 30px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
+        .status-badge.up { background: #D1FAE5; color: #059669; }
+        .status-badge.down { background: #FEE2E2; color: #DC2626; }
+        .status-badge.checking { background: #FEF3C7; color: #D97706; }
+        .status-dot-small { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        .status-dot-small.up { background: #10B981; }
+        .status-dot-small.down { background: #EF4444; }
+        .status-dot-small.checking { background: #F59E0B; animation: checkingPulse 1.5s ease-in-out infinite; }
+
+        /* ========================================= */
+        /* MODAL                                     */
+        /* ========================================= */
+        .modal-content { border-radius: 20px !important; border: none !important; box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.2); }
+        .modal-header-primary { background: linear-gradient(95deg, #0D9488, #0F766E); color: white; border-radius: 20px 20px 0 0 !important; padding: 20px 28px; }
+        .modal-header-primary .btn-close-white { filter: brightness(0) invert(1); }
+        .modal-body { padding: 28px; }
+        .modal-footer { padding: 16px 28px; border-top: 1px solid #E2E8F0; }
+        .form-label { font-weight: 600; font-size: 14px; color: #0F172A; }
+        .form-control { border-radius: 12px; border: 1px solid #E2E8F0; padding: 12px 16px; font-size: 14px; }
+        .form-control:focus { border-color: #0D9488; box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1); }
+
+        /* ========================================= */
+        /* TOAST                                     */
+        /* ========================================= */
+        .toast-msg {
+            position: fixed; bottom: 30px; right: 30px; background: #1E293B; color: white;
+            padding: 14px 24px; border-radius: 50px; z-index: 9999; display: none;
+            animation: slideInRight 0.3s ease; border-left: 4px solid #2DD4BF;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2); max-width: 90%;
+        }
+        .toast-msg.error { border-left-color: #DC2626; }
+        .toast-msg.success { border-left-color: #10B981; }
+        .toast-msg.info { border-left-color: #3B82F6; }
+
+        /* ========================================= */
+        /* VIEW CONTAINERS                           */
+        /* ========================================= */
+        .view-container { display: none; animation: fadeIn 0.4s ease; }
+        .view-container.active { display: block; }
+
+        /* ========================================= */
+        /* RESPONSIVE                                */
+        /* ========================================= */
+        @media(max-width:992px) {
+            .sidebar { width: 90px; }
+            .sidebar .nav-item span, .sidebar .logo-area .qa-tagline { display: none; }
+            .main-content { margin-left: 90px; width: calc(100% - 90px); }
+        }
+        @media(max-width:768px) {
+            .main-content { margin-left: 0; padding: 15px; width: 100%; }
+            .sidebar { transform: translateX(-100%); }
+            .top-nav { flex-direction: column; align-items: stretch; }
+            .top-right { flex-wrap: wrap; justify-content: center; }
+            .stat-value { font-size: 28px; }
+            .table-card { padding: 15px; }
+            .meter-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+            .chart-card .chart-container { height: 250px; }
+            .toast-msg { left: 20px; right: 20px; min-width: auto; border-radius: 20px; }
+        }
+
+        /* ========================================= */
+        /* SCROLLBAR                                 */
+        /* ========================================= */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #F1F5F9; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+        .dark-mode ::-webkit-scrollbar-track { background: #1E293B; }
+        .dark-mode ::-webkit-scrollbar-thumb { background: #334155; }
+    </style>
+</head>
+
+<body>
+
+    <!-- ========================================= -->
+    <!-- SIDEBAR                                   -->
+    <!-- ========================================= -->
+    <div class="sidebar">
+        <div class="logo-area">
+            <h2><i class="fas fa-microphone-alt"></i> VoiceOC</h2>
+            <div class="qa-tagline">
+                <span class="tick-icon"><i class="fas fa-check-circle"></i></span>
+                <span class="tag-text">QA DAILY TASKS</span>
+            </div>
+        </div>
+
+        <div class="nav-item" onclick="location.href='dashboard.html'">
+            <i class="fas fa-chart-line"></i><span>Dashboard</span>
+        </div>
+        <div class="nav-item" onclick="location.href='tasks.html'">
+            <i class="fas fa-tasks"></i><span>Tasks</span>
+        </div>
+        <div class="nav-item" onclick="location.href='clientdetails.html'">
+            <i class="fas fa-building"></i><span>Clients Detail</span>
+        </div>
+        <div class="nav-item" onclick="location.href='bugtracker.html'">
+            <i class="fas fa-bug"></i><span>Bug Tracker</span>
+        </div>
+        <div class="nav-item" onclick="location.href='json-sheet.html'">
+            <i class="fas fa-code"></i><span>JSON Sheets</span>
+        </div>
+        <div class="nav-item" onclick="window.location.href='response-sheet.html'">
+            <i class="fas fa-file-excel"></i><span>Response Sheet</span>
+        </div>
+        <div class="nav-item" onclick="window.location.href='journey-map.html'">
+            <i class="fas fa-route"></i><span>Journey Map</span>
+        </div>
+        <div class="nav-item" onclick="location.href='api-doc.html'">
+            <i class="fas fa-book"></i><span>API Doc</span>
+        </div>
+        
+          <div class="nav-item" onclick="location.href='dashboard-monitor.html'">
+            <i class="fas fa-heartbeat"></i>
+            <span>Dashboard Monitor</span>
+        </div>
+
+        <div class="nav-item active">
+            <i class="fab fa-whatsapp"></i><span>WhatsApp Monitor</span>
+        </div>
+
+        <div class="nav-item" onclick="window.location.href='json-diff.html'">
+            <i class="fas fa-code-branch"></i><span>JSON Diff</span>
+        </div>
+        <div class="nav-item" onclick="location.href='reports.html'">
+            <i class="fas fa-chart-pie"></i><span>Reports</span>
+        </div>
+        <div class="nav-item" onclick="location.href='settings.html'">
+            <i class="fas fa-gear"></i><span>Settings</span>
+        </div>
+        <div class="nav-item" id="logoutBtn">
+            <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+        </div>
+    </div>
+
+    <!-- ========================================= -->
+    <!-- MAIN CONTENT                              -->
+    <!-- ========================================= -->
+    <div class="main-content">
+
+        <!-- TOP NAV -->
+        <div class="top-nav">
+            <div class="page-title">
+                <h3><i class="fab fa-whatsapp" style="color:#0D9488;"></i> WhatsApp Bot Monitor</h3>
+                <p>Real-time WhatsApp bot activity monitoring</p>
+            </div>
+
+            <div class="top-right">
+                <span class="badge bg-success px-3 py-2">LIVE</span>
+                <span id="liveClock" class="fw-bold"></span>
+
+                <div class="dropdown view-dropdown">
+                    <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-table"></i> View
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item active" data-view="table" onclick="switchView('table')"><i class="fas fa-table"></i> Table View</a></li>
+                        <li><a class="dropdown-item" data-view="meter" onclick="switchView('meter')"><i class="fas fa-chart-simple"></i> Meter View</a></li>
+                        <li><a class="dropdown-item" data-view="chart" onclick="switchView('chart')"><i class="fas fa-chart-bar"></i> Graph View</a></li>
+                    </ul>
+                </div>
+
+                <button class="btn btn-success px-4 py-2" id="btnCheckAll" style="border-radius:50px; font-weight:600; font-size:14px;">
+                    <i class="fas fa-play"></i> Check All
+                </button>
+                <button class="btn btn-primary px-4 py-2" id="btnAddClient" style="border-radius:50px; font-weight:600; font-size:14px;">
+                    <i class="fas fa-plus"></i> Add
+                </button>
+                <button class="refresh-btn" id="btnRefresh" title="Refresh data">
+                    <i class="fas fa-sync-alt"></i>
+                    <span class="refresh-tooltip">Refresh</span>
+                </button>
+                <span class="user-badge">
+                    <i class="fas fa-user-check"></i>
+                    <span id="userNameDisplay">User</span>
+                </span>
+            </div>
+        </div>
+
+        <!-- STATISTICS CARDS -->
+        <div class="row g-4">
+            <div class="col-md-3 col-6">
+                <div class="stat-card" id="statTotal" onclick="filterByStatus('ALL')">
+                    <div class="stat-icon"><i class="fas fa-list"></i></div>
+                    <div class="stat-label">Total Clients</div>
+                    <div class="stat-value" id="totalClients">0</div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="stat-card" id="statActive" onclick="filterByStatus('ACTIVE')">
+                    <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                    <div class="stat-label">Active</div>
+                    <div class="stat-value" id="activeClients">0 <span class="status-dot up"></span></div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="stat-card" id="statNoActivity" onclick="filterByStatus('NO_ACTIVITY')">
+                    <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                    <div class="stat-label">No Activity</div>
+                    <div class="stat-value" id="noActivityClients">0 <span class="status-dot checking"></span></div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="stat-card" id="statError" onclick="filterByStatus('ERROR')">
+                    <div class="stat-icon"><i class="fas fa-triangle-exclamation"></i></div>
+                    <div class="stat-label">API Error</div>
+                    <div class="stat-value" id="apiErrorClients">0 <span class="status-dot down"></span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================= -->
+        <!-- TABLE VIEW                                -->
+        <!-- ========================================= -->
+        <div class="view-container active" id="tableView">
+            <div class="table-card">
+                <div class="table-header">
+                    <h5><i class="fas fa-table-list"></i> WhatsApp Bot Status</h5>
+                    <div>
+                        <span class="badge bg-primary" id="clientCount">0 clients</span>
+                        <button class="btn btn-sm btn-outline-secondary ms-2" onclick="clearFilter()">
+                            <i class="fas fa-times"></i> Clear
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="whatsappTable" class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Client Name</th>
+                                <th>Status</th>
+                                <th>Last Activity</th>
+                                <th>Inactive</th>
+                                <th>Last Checked</th>
+                                <th>Response</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clientTableBody">
+                            <!-- Rendered by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================= -->
+        <!-- METER VIEW                                -->
+        <!-- ========================================= -->
+        <div class="view-container" id="meterView">
+            <div class="meter-card">
+                <div class="table-header">
+                    <h5><i class="fas fa-chart-simple"></i> Client Health</h5>
+                    <span class="badge bg-primary" id="meterCount">0 clients</span>
+                </div>
+                <div class="meter-grid" id="meterGrid"></div>
+            </div>
+        </div>
+
+        <!-- ========================================= -->
+        <!-- CHART VIEW                                -->
+        <!-- ========================================= -->
+        <div class="view-container" id="chartView">
+            <div class="chart-card">
+                <div class="table-header">
+                    <h5><i class="fas fa-chart-pie"></i> Status Distribution</h5>
+                    <span class="badge bg-primary">Overview</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card mt-4">
+                <div class="table-header">
+                    <h5><i class="fas fa-chart-line"></i> Response Times</h5>
+                    <span class="badge bg-primary">Latest Checks</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="responseChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ========================================= -->
+    <!-- ADD CLIENT MODAL                          -->
+    <!-- ========================================= -->
+
+    <div class="modal fade" id="addModal" tabindex="-1">
+
+        <div class="modal-dialog modal-md">
+
+            <div class="modal-content">
+
+                <div class="modal-header modal-header-primary">
+
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus me-2"></i>
+                        Add WhatsApp Client
+                    </h5>
+
+                    <button
+                        type="button"
+                        class="btn-close btn-close-white"
+                        data-bs-dismiss="modal">
+                    </button>
+
+                </div>
+
+                <div class="modal-body">
+
+                    <form id="addForm">
+
+                        <!-- CLIENT NAME -->
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Client Name
+                                <span class="text-danger">*</span>
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="clientNameInput"
+                                placeholder="e.g., Bahrain Specialist Hospital"
+                                required>
+
+                        </div>
+
+
+                        <!-- API URL -->
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                API URL
+                                <span class="text-danger">*</span>
+                            </label>
+
+                            <input
+                                type="url"
+                                class="form-control"
+                                id="apiUrlInput"
+                                placeholder="https://example.com/api/v1/admins/customerList?page=1&limit=3"
+                                required>
+
+                        </div>
+
+
+                        <!-- TOKEN / JWT -->
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Token / JWT
+                                <span class="text-danger">*</span>
+                            </label>
+
+                            <div class="input-group">
+
+                                <input
+                                    type="password"
+                                    class="form-control"
+                                    id="tokenInput"
+                                    placeholder="Enter JWT or Bearer token"
+                                    required>
+
+                                <button
+                                    class="btn btn-outline-secondary"
+                                    type="button"
+                                    id="toggleTokenBtn"
+                                    title="Show/Hide Token">
+
+                                    <i class="fas fa-eye"></i>
+
+                                </button>
+
+                            </div>
+
+                            <small class="text-muted">
+                                You can enter the JWT directly or include <b>Bearer</b> before the token.
+                            </small>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button
+                        type="button"
+                        class="btn btn-primary"
+                        id="btnSaveClient">
+
+                        <i class="fas fa-save me-1"></i>
+                        Save
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ========================================= -->
+    <!-- TOAST                                     -->
+    <!-- ========================================= -->
+    <div class="toast-msg" id="toastMsg">
+        <span id="toastText"></span>
+    </div>
+
+    <!-- ========================================= -->
+    <!-- SCRIPTS                                   -->
+    <!-- ========================================= -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // =====================================
+        // CONFIGURATION
+        // =====================================
+        const API_BASE = 'http://localhost:8080/api/whatsapp-monitor';
+        let allClients = [];
+        let dataTable = null;
+        let isCheckingAll = false;
+        let currentFilter = 'ALL';
+        let statusChart = null;
+        let responseChart = null;
+        let isRefreshing = false;
+        let autoRefreshInterval = null;
+        let countdownValue = 10;
+        let checkingIds = new Set();
+
+        // =====================================
+        // SESSION / USER / DARK MODE
+        // =====================================
+        function displayUserName() {
+            try {
+                var userDataStr = localStorage.getItem('voiceoc_user');
+                var userNameDisplay = document.getElementById('userNameDisplay');
+                if (userDataStr && userNameDisplay) {
+                    try {
+                        var userData = JSON.parse(userDataStr);
+                        userNameDisplay.innerText = userData.fullName || userData.username || 'User';
+                    } catch (e) {
+                        userNameDisplay.innerText = userDataStr;
+                    }
+                }
+            } catch (error) {
+                console.error('Error displaying username:', error);
+            }
+        }
+
+        function applyDarkMode() {
+            try {
+                var settings = JSON.parse(localStorage.getItem('voiceoc_settings') || '{}');
+                if (settings.darkMode) {
+                    document.body.classList.add('dark-mode');
+                } else {
+                    document.body.classList.remove('dark-mode');
+                }
+                if (dataTable) dataTable.draw();
+                if (document.getElementById('chartView').classList.contains('active')) {
+                    renderCharts();
+                }
+            } catch (e) {
+                console.error('Error applying dark mode:', e);
+            }
+        }
+
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'voiceoc_settings') applyDarkMode();
+        });
+
+        function checkAuth() {
+            if (localStorage.getItem('voiceoc_logged_in') !== 'true') {
+                window.location.href = 'index.html';
+                return false;
+            }
+            return true;
+        }
+
+        function logout() {
+            localStorage.removeItem('voiceoc_logged_in');
+            localStorage.removeItem('voiceoc_user');
+            showToast('Logged out successfully');
+            setTimeout(function() { window.location.href = 'index.html'; }, 1000);
+        }
+
+        document.getElementById('logoutBtn')?.addEventListener('click', logout);
+
+        // =====================================
+        // TOAST
+        // =====================================
+        function showToast(message, isError, type) {
+            if (isError === undefined) isError = false;
+            if (type === undefined) type = 'success';
+
+            if (typeof window.showToastMessage === 'function') {
+                window.showToastMessage(message, isError ? 'error' : 'success');
+                return;
+            }
+
+            var toastText = document.getElementById('toastText');
+            var toast = document.getElementById('toastMsg');
+            if (toastText) toastText.innerText = message;
+            if (toast) {
+                toast.className = 'toast-msg';
+                if (isError) toast.classList.add('error');
+                else if (type === 'info') toast.classList.add('info');
+                else toast.classList.add('success');
+                toast.style.display = 'block';
+                clearTimeout(toast._timeout);
+                toast._timeout = setTimeout(function() { toast.style.display = 'none'; }, 3500);
+            }
+        }
+
+        // =====================================
+        // LIVE CLOCK
+        // =====================================
+        function updateClock() {
+            var liveClock = document.getElementById('liveClock');
+            if (liveClock) liveClock.innerText = new Date().toLocaleTimeString();
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // =====================================
+        // VIEW SWITCHER
+        // =====================================
+        function switchView(view) {
+            document.querySelectorAll('.view-container').forEach(function(el) {
+                el.classList.remove('active');
+            });
+            document.getElementById(view + 'View').classList.add('active');
+
+            document.querySelectorAll('.view-dropdown .dropdown-item').forEach(function(item) {
+                item.classList.remove('active');
+                if (item.getAttribute('data-view') === view) item.classList.add('active');
+            });
+
+            if (view === 'table') renderTable();
+            if (view === 'meter') renderMeterView();
+            if (view === 'chart') renderCharts();
+        }
+
+        // =====================================
+        // LOAD CLIENTS
+        // =====================================
+        async function loadClients(showNotification) {
+            if (showNotification === undefined) showNotification = false;
+            try {
+                var response = await fetch(API_BASE + '/clients');
+                if (!response.ok) throw new Error('Failed to load clients');
+                allClients = await response.json();
+                renderTable();
+                updateStats();
+                if (document.getElementById('meterView').classList.contains('active')) renderMeterView();
+                if (document.getElementById('chartView').classList.contains('active')) renderCharts();
+            } catch (error) {
+                console.error('Error loading clients:', error);
+                if (showNotification) showToast('Failed to load clients: ' + error.message, true);
+                document.getElementById('clientTableBody').innerHTML = `
+                    <tr><td colspan="8" class="text-center py-4 text-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i> Failed to load WhatsApp monitor data.
+                    </td></tr>`;
+            }
+        }
+
+        // =====================================
+        // REFRESH
+        // =====================================
+        function refreshData() {
+            var refreshBtn = document.getElementById('btnRefresh');
+            if (isRefreshing) return;
+            isRefreshing = true;
+            if (refreshBtn) {
+                refreshBtn.classList.add('spinning');
+                refreshBtn.disabled = true;
+            }
+            showToast('🔄 Refreshing data...', false, 'info');
+            loadClients(true).finally(function() {
+                isRefreshing = false;
+                if (refreshBtn) {
+                    refreshBtn.classList.remove('spinning');
+                    refreshBtn.disabled = false;
+                }
+                countdownValue = 10;
+            });
+        }
+
+        // =====================================
+        // AUTO REFRESH
+        // =====================================
+        function startAutoRefresh() {
+            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+            countdownValue = 10;
+            autoRefreshInterval = setInterval(function() {
+                countdownValue--;
+                if (countdownValue <= 0) {
+                    countdownValue = 10;
+                    loadClients(false).catch(function(err) { console.error('Auto-refresh error:', err); });
+                }
+            }, 1000);
+        }
+
+        // =====================================
+        // FILTERS
+        // =====================================
+        function getFilteredData() {
+            if (currentFilter === 'ALL') return allClients;
+            if (currentFilter === 'ERROR') {
+                return allClients.filter(function(d) {
+                    return d.status === 'API_ERROR' || d.status === 'AUTH_EXPIRED';
+                });
+            }
+            return allClients.filter(function(d) { return d.status === currentFilter; });
+        }
+
+        function filterByStatus(status) {
+            currentFilter = status;
+            document.querySelectorAll('.stat-card').forEach(function(card) {
+                card.classList.remove('active-total', 'active-up', 'active-down', 'active-checking');
+            });
+
+            if (status === 'ALL') document.getElementById('statTotal').classList.add('active-total');
+            else if (status === 'ACTIVE') document.getElementById('statActive').classList.add('active-up');
+            else if (status === 'NO_ACTIVITY') document.getElementById('statNoActivity').classList.add('active-checking');
+            else if (status === 'ERROR') document.getElementById('statError').classList.add('active-down');
+
+            renderTable();
+            renderMeterView();
+            if (document.getElementById('chartView').classList.contains('active')) renderCharts();
+        }
+
+        function clearFilter() {
+            currentFilter = 'ALL';
+            document.querySelectorAll('.stat-card').forEach(function(card) {
+                card.classList.remove('active-total', 'active-up', 'active-down', 'active-checking');
+            });
+            document.getElementById('statTotal').classList.add('active-total');
+            renderTable();
+            renderMeterView();
+            if (document.getElementById('chartView').classList.contains('active')) renderCharts();
+        }
+
+        // =====================================
+        // DISPLAY STATUS
+        // =====================================
+        function getDisplayStatus(client) {
+            if (checkingIds.has(client.id)) return 'CHECKING';
+            return client.status || 'CHECKING';
+        }
+
+        // =====================================
+        // STATUS CLASS
+        // =====================================
+        function getStatusClass(status) {
+            if (!status) return 'checking';
+            var s = status.toUpperCase();
+            if (s === 'ACTIVE') return 'up';
+            if (s === 'NO_ACTIVITY') return 'checking';
+            if (s === 'API_ERROR' || s === 'AUTH_EXPIRED') return 'down';
+            return 'checking';
+        }
+
+        function getStatusLabel(status) {
+            if (!status) return 'CHECKING';
+            var s = status.toUpperCase();
+            if (s === 'ACTIVE') return 'ACTIVE';
+            if (s === 'NO_ACTIVITY') return 'NO ACTIVITY';
+            if (s === 'API_ERROR') return 'API ERROR';
+            if (s === 'AUTH_EXPIRED') return 'AUTH EXPIRED';
+            if (s === 'CHECKING') return 'CHECKING';
+            return s;
+        }
+
+        // =====================================
+        // RENDER TABLE
+        // =====================================
+        function renderTable() {
+            var tbody = document.getElementById('clientTableBody');
+            if (!tbody) return;
+
+            var filtered = getFilteredData();
+            document.getElementById('clientCount').textContent = filtered.length + ' clients';
+
+            if (dataTable) {
+                try { dataTable.destroy(); dataTable = null; } catch (e) {}
+            }
+            if ($.fn.DataTable.isDataTable('#whatsappTable')) {
+                $('#whatsappTable').DataTable().clear().destroy();
+            }
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr><td colspan="8" class="text-center py-4 text-muted">
+                        <i class="fas fa-inbox fa-2x d-block mb-2"></i>
+                        ${allClients.length === 0 ? 'No WhatsApp clients added yet. Click "Add" to start monitoring.' : 'No clients with status: ' + currentFilter}
+                    </td></tr>`;
+                return;
+            }
+
+            var sorted = [...filtered].sort(function(a, b) { return b.id - a.id; });
+            var html = '';
+            for (var i = 0; i < sorted.length; i++) {
+                var d = sorted[i];
+                var status = getDisplayStatus(d);
+                var statusClass = getStatusClass(status);
+                var statusLabel = getStatusLabel(status);
+                var isChecking = checkingIds.has(d.id);
+
+                var lastActivity = d.lastActivity ? formatDate(d.lastActivity) : '—';
+                var inactiveMin = (d.inactiveMinutes != null && d.inactiveMinutes !== undefined) ? d.inactiveMinutes + ' min' : '—';
+                var lastChecked = d.lastChecked ? formatDate(d.lastChecked) : '—';
+                var responseTime = (d.responseTime != null && d.responseTime !== undefined) ? d.responseTime + ' ms' : '—';
+
+                html += `
+                    <tr>
+                        <td>${i + 1}</td>
+                        <td><strong>${escapeHtml(d.clientName)}</strong></td>
+                        <td>
+                            <span class="status-badge ${statusClass}">
+                                <span class="status-dot-small ${statusClass}"></span>
+                                ${statusLabel}
+                            </span>
+                        </td>
+                        <td>${isChecking ? 'Checking...' : lastActivity}</td>
+                        <td>${isChecking ? '-' : inactiveMin}</td>
+                        <td>${isChecking ? 'Checking...' : lastChecked}</td>
+                        <td>${isChecking ? 'Checking...' : responseTime}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteClient(${d.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>`;
+            }
+            tbody.innerHTML = html;
+
+            if (filtered.length > 0) {
+                dataTable = $('#whatsappTable').DataTable({
+                    pageLength: 15,
+                    order: [[0, 'asc']],
+                    scrollX: true,
+                    autoWidth: false,
+                    language: {
+                        emptyTable: "No clients found",
+                        search: "Search:",
+                        lengthMenu: "Show _MENU_ entries",
+                        info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                        infoFiltered: "(filtered from _MAX_ total entries)"
+                    },
+                    columnDefs: [
+                        { orderable: false, targets: [1, 2, 3, 4, 5, 6, 7] }
+                    ]
+                });
+            }
+        }
+
+        // =====================================
+        // RENDER METER VIEW
+        // =====================================
+        function renderMeterView() {
+            var grid = document.getElementById('meterGrid');
+            if (!grid) return;
+
+            var filtered = getFilteredData();
+            document.getElementById('meterCount').textContent = filtered.length + ' clients';
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="text-center py-5 text-muted" style="grid-column: 1 / -1;">
+                        <i class="fas fa-inbox fa-3x d-block mb-3" style="opacity:0.3;"></i>
+                        <h6>No clients found</h6>
+                        <p class="small">${currentFilter !== 'ALL' ? 'Try clearing the filter' : 'Add your first WhatsApp client'}</p>
+                    </div>`;
+                return;
+            }
+
+            var sorted = [...filtered].sort(function(a, b) { return b.id - a.id; });
+            var html = '';
+            for (var i = 0; i < sorted.length; i++) {
+                var d = sorted[i];
+                var status = getDisplayStatus(d);
+                var statusClass = getStatusClass(status);
+                var statusLabel = getStatusLabel(status);
+                var responseTime = d.responseTime || 0;
+                var maxResponse = 5000;
+                var percentage = Math.min((responseTime / maxResponse) * 100, 100);
+                if (statusClass === 'checking') percentage = 50;
+
+                var statusIcon = '';
+                if (statusClass === 'up') statusIcon = 'fa-check-circle';
+                else if (statusClass === 'down') statusIcon = 'fa-times-circle';
+                else statusIcon = 'fa-clock';
+
+                var lastChecked = d.lastChecked ? formatDate(d.lastChecked) : 'Never';
+
+                html += `
+                    <div class="meter-item ${statusClass}" onclick="checkClient(${d.id})">
+                        <div class="status-icon ${statusClass}"><i class="fas ${statusIcon}"></i></div>
+                        <div class="client-name" title="${escapeHtml(d.clientName)}">${escapeHtml(d.clientName)}</div>
+                        <div class="client-sub">${escapeHtml(d.whatsappNumber || d.clientName)}</div>
+                        <div class="meter-bar">
+                            <div class="meter-fill ${statusClass}" style="width: ${percentage}%"></div>
+                        </div>
+                        <div class="status-text">
+                            <span><span class="pulse-dot ${statusClass}"></span> ${statusLabel}</span>
+                            <span class="status-label ${statusClass}">${d.statusCode != null ? d.statusCode : 'N/A'}</span>
+                        </div>
+                        <div class="response-time">
+                            ${statusClass === 'checking' ? '⌛ Checking...' : (responseTime + ' <small>ms</small>')}
+                        </div>
+                        <div class="last-checked"><i class="far fa-clock me-1"></i> ${lastChecked}</div>
+                    </div>`;
+            }
+            grid.innerHTML = html;
+        }
+
+        // =====================================
+        // RENDER CHARTS
+        // =====================================
+        function renderCharts() {
+            renderStatusChart();
+            renderResponseChart();
+        }
+
+        function renderStatusChart() {
+            var ctx = document.getElementById('statusChart').getContext('2d');
+            if (statusChart) statusChart.destroy();
+
+            var filtered = getFilteredData();
+            var active = 0, noActivity = 0, error = 0, checking = 0;
+
+            for (var i = 0; i < filtered.length; i++) {
+                var status = getDisplayStatus(filtered[i]);
+                if (status === 'ACTIVE') active++;
+                else if (status === 'NO_ACTIVITY') noActivity++;
+                else if (status === 'API_ERROR' || status === 'AUTH_EXPIRED') error++;
+                else checking++;
+            }
+
+            var isDark = document.body.classList.contains('dark-mode');
+            var textColor = isDark ? '#F8FAFC' : '#0F172A';
+
+            statusChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Active', 'No Activity', 'API Error', 'Checking'],
+                    datasets: [{
+                        data: [active, noActivity, error, checking],
+                        backgroundColor: ['#10B981', '#F59E0B', '#EF4444', '#94A3B8'],
+                        borderColor: isDark ? '#1E293B' : '#FFFFFF',
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: textColor, font: { size: 14, weight: '600' }, padding: 20 }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+        }
+
+        function renderResponseChart() {
+            var ctx = document.getElementById('responseChart').getContext('2d');
+            if (responseChart) responseChart.destroy();
+
+            var filtered = getFilteredData();
+            var sorted = filtered
+                .filter(function(d) { return d.responseTime != null && d.responseTime > 0 && !checkingIds.has(d.id); })
+                .sort(function(a, b) { return b.id - a.id; })
+                .slice(0, 10)
+                .reverse();
+
+            if (sorted.length === 0) {
+                responseChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels: ['No data'], datasets: [{ label: 'Response Time (ms)', data: [0], backgroundColor: ['#94A3B8'], borderRadius: 8, borderSkipped: false }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#E2E8F0' }, ticks: { color: '#94A3B8' } }, x: { grid: { display: false }, ticks: { color: '#94A3B8', font: { size: 11 } } } } }
+                });
+                return;
+            }
+
+            var labels = sorted.map(function(d) { return d.clientName.substring(0, 15) + '...'; });
+            var data = sorted.map(function(d) { return d.responseTime; });
+            var colors = sorted.map(function(d) {
+                return d.status && d.status === 'ACTIVE' ? '#10B981' : (d.status === 'NO_ACTIVITY' ? '#F59E0B' : '#EF4444');
+            });
+
+            var isDark = document.body.classList.contains('dark-mode');
+            var textColor = isDark ? '#F8FAFC' : '#0F172A';
+            var gridColor = isDark ? '#1E293B' : '#E2E8F0';
+
+            responseChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{ label: 'Response Time (ms)', data: data, backgroundColor: colors, borderRadius: 8, borderSkipped: false }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } },
+                        x: { grid: { display: false }, ticks: { color: textColor, font: { size: 11 } } }
+                    }
+                }
+            });
+        }
+
+        // =====================================
+        // UPDATE STATS
+        // =====================================
+        function updateStats() {
+            var total = allClients.length;
+            var active = 0, noActivity = 0, error = 0;
+
+            for (var i = 0; i < allClients.length; i++) {
+                var status = getDisplayStatus(allClients[i]);
+                if (status === 'ACTIVE') active++;
+                else if (status === 'NO_ACTIVITY') noActivity++;
+                else if (status === 'API_ERROR' || status === 'AUTH_EXPIRED') error++;
+            }
+
+            document.getElementById('totalClients').innerText = total;
+            document.getElementById('activeClients').innerHTML = active + ' <span class="status-dot up"></span>';
+            document.getElementById('noActivityClients').innerHTML = noActivity + ' <span class="status-dot checking"></span>';
+            document.getElementById('apiErrorClients').innerHTML = error + ' <span class="status-dot down"></span>';
+
+            if (currentFilter === 'ALL') document.getElementById('statTotal').classList.add('active-total');
+        }
+
+        // =====================================
+        // CHECK SINGLE CLIENT
+        // =====================================
+        async function checkClient(id) {
+            if (checkingIds.has(id)) return;
+
+            try {
+                checkingIds.add(id);
+                renderTable();
+                updateStats();
+                renderMeterView();
+                if (document.getElementById('chartView').classList.contains('active')) renderCharts();
+
+                showToast('🔄 Checking WhatsApp client...', false, 'info');
+
+                var response = await fetch(API_BASE + '/check/' + id, { method: 'POST' });
+                if (!response.ok) throw new Error('Failed to check client');
+                var updated = await response.json();
+
+                checkingIds.delete(id);
+
+                var index = -1;
+                for (var i = 0; i < allClients.length; i++) {
+                    if (allClients[i].id === updated.id) { index = i; break; }
+                }
+                if (index !== -1) allClients[index] = updated;
+
+                renderTable();
+                updateStats();
+                renderMeterView();
+                if (document.getElementById('chartView').classList.contains('active')) renderCharts();
+                countdownValue = 10;
+
+                showToast('✅ ' + updated.clientName + ' - ' + updated.status + ' (' + (updated.responseTime || 0) + 'ms)');
+            } catch (error) {
+                checkingIds.delete(id);
+                showToast('Failed to check client: ' + error.message, true);
+                renderTable();
+                updateStats();
+                renderMeterView();
+                if (document.getElementById('chartView').classList.contains('active')) renderCharts();
+            }
+        }
+
+        // =====================================
+        // CHECK ALL
+        // =====================================
+        async function checkAllClients() {
+            if (isCheckingAll) {
+                showToast('Already checking all clients...');
+                return;
+            }
+            try {
+                isCheckingAll = true;
+                var btn = document.getElementById('btnCheckAll');
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+                btn.disabled = true;
+
+                showToast('🔄 Checking all WhatsApp clients...', false, 'info');
+
+                for (var i = 0; i < allClients.length; i++) {
+                    checkingIds.add(allClients[i].id);
+                }
+
+                renderTable();
+                updateStats();
+                renderMeterView();
+                if (document.getElementById('chartView').classList.contains('active')) renderCharts();
+
+                var response = await fetch(API_BASE + '/check-all', { method: 'POST' });
+                if (!response.ok) throw new Error('Failed to check all clients');
+                var updated = await response.json();
+
+                checkingIds.clear();
+
+                if (Array.isArray(updated) && updated.length > 0) {
+                    var map = {};
+                    for (var i = 0; i < updated.length; i++) {
+                        map[updated[i].id] = updated[i];
+                    }
+                    for (var i = 0; i < allClients.length; i++) {
+                        if (map[allClients[i].id]) allClients[i] = map[allClients[i].id];
+                    }
+                }
+
+                renderTable();
+                updateStats();
+                renderMeterView();
+                if (document.getElementById('chartView').classList.contains('active')) renderCharts();
+                countdownValue = 10;
+
+                var activeCount = 0, noActivityCount = 0, errorCount = 0;
+                for (var i = 0; i < updated.length; i++) {
+                    var s = (updated[i].status || '').toUpperCase();
+                    if (s === 'ACTIVE') activeCount++;
+                    else if (s === 'NO_ACTIVITY') noActivityCount++;
+                    else if (s === 'API_ERROR' || s === 'AUTH_EXPIRED') errorCount++;
+                }
+                showToast('✅ Checked all - Active: ' + activeCount + ', No Activity: ' + noActivityCount + ', API Error: ' + errorCount);
+            } catch (error) {
+                checkingIds.clear();
+                showToast('Failed to check all: ' + error.message, true);
+                renderTable();
+                updateStats();
+                renderMeterView();
+                if (document.getElementById('chartView').classList.contains('active')) renderCharts();
+            } finally {
+                isCheckingAll = false;
+                var btn = document.getElementById('btnCheckAll');
+                btn.innerHTML = '<i class="fas fa-play"></i> Check All';
+                btn.disabled = false;
+            }
+        }
+
+        // =====================================
+        // DELETE CLIENT
+        // =====================================
+        async function deleteClient(id) {
+            var client = null;
+            for (var i = 0; i < allClients.length; i++) {
+                if (allClients[i].id === id) { client = allClients[i]; break; }
+            }
+            if (!client) return;
+            if (!confirm('Delete "' + client.clientName + '"?')) return;
+            try {
+                var response = await fetch(API_BASE + '/clients/' + id, { method: 'DELETE' });
+                if (!response.ok) throw new Error('Failed to delete');
+                showToast('✅ "' + client.clientName + '" deleted');
+                await loadClients(false);
+            } catch (error) {
+                showToast('Failed to delete: ' + error.message, true);
+            }
+        }
+
+        // =====================================
+        // ADD CLIENT
+        // =====================================
+
+        async function addClient() {
+
+            var clientName =
+                document.getElementById('clientNameInput').value.trim();
+
+            var apiUrl =
+                document.getElementById('apiUrlInput').value.trim();
+
+            var token =
+                document.getElementById('tokenInput').value.trim();
+
+
+            // -------------------------------------
+            // VALIDATION
+            // -------------------------------------
+
+            if (!clientName) {
+
+                return showToast(
+                    'Please enter client name',
+                    true
+                );
+
+            }
+
+
+            if (!apiUrl) {
+
+                return showToast(
+                    'Please enter API URL',
+                    true
+                );
+
+            }
+
+
+            if (!token) {
+
+                return showToast(
+                    'Please enter Token / JWT',
+                    true
+                );
+
+            }
+
+
+            // -------------------------------------
+            // SAVE CLIENT
+            // -------------------------------------
+
+            try {
+
+                var response = await fetch(
+                    API_BASE + '/clients',
+                    {
+
+                        method: 'POST',
+
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+
+                        body: JSON.stringify({
+
+                            clientName: clientName,
+
+                            apiUrl: apiUrl,
+
+                            token: token
+
+                        })
+
+                    }
+                );
+
+
+                if (!response.ok) {
+
+                    var errorText = '';
+
+                    try {
+                        errorText = await response.text();
+                    } catch (e) {
+                        errorText = '';
+                    }
+
+                    throw new Error(
+                        errorText || 'Failed to add client'
+                    );
+
+                }
+
+
+                // -------------------------------------
+                // SUCCESS
+                // -------------------------------------
+
+                showToast(
+                    '✅ "' + clientName + '" added successfully!'
+                );
+
+
+                var modal =
+                    bootstrap.Modal.getInstance(
+                        document.getElementById('addModal')
+                    );
+
+                if (modal) {
+
+                    modal.hide();
+
+                }
+
+
+                // -------------------------------------
+                // CLEAR FORM
+                // -------------------------------------
+
+                document.getElementById(
+                    'clientNameInput'
+                ).value = '';
+
+                document.getElementById(
+                    'apiUrlInput'
+                ).value = '';
+
+                document.getElementById(
+                    'tokenInput'
+                ).value = '';
+
+
+                // -------------------------------------
+                // REFRESH CLIENT LIST
+                // -------------------------------------
+
+                await loadClients(false);
+
+
+            } catch (error) {
+
+                console.error(
+                    'Error adding WhatsApp client:',
+                    error
+                );
+
+                showToast(
+                    'Failed to add: ' + error.message,
+                    true
+                );
+
+            }
+
+        }
+
+        // =====================================
+        // UTILITY FUNCTIONS
+        // =====================================
+        function formatDate(dateString) {
+            if (!dateString) return 'Never';
+            try {
+                var date = new Date(dateString);
+                if (isNaN(date.getTime())) return 'Invalid';
+                return date.toLocaleString('en-US', {
+                    day: '2-digit', month: 'short', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit', hour12: true
+                });
+            } catch (e) { return dateString; }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            var div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // =====================================
+        // EVENT LISTENERS
+        // =====================================
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!checkAuth()) return;
+
+            applyDarkMode();
+            displayUserName();
+
+            document.getElementById('btnAddClient').addEventListener('click', function() {
+                new bootstrap.Modal(document.getElementById('addModal')).show();
+            });
+
+            document.getElementById('btnSaveClient').addEventListener('click', addClient);
+
+            // =====================================
+            // TOKEN SHOW / HIDE
+            // =====================================
+
+            document.getElementById('toggleTokenBtn').addEventListener(
+                'click',
+                function () {
+
+                    var tokenInput =
+                        document.getElementById('tokenInput');
+
+                    var icon =
+                        this.querySelector('i');
+
+                    if (tokenInput.type === 'password') {
+
+                        tokenInput.type = 'text';
+
+                        icon.classList.remove('fa-eye');
+
+                        icon.classList.add('fa-eye-slash');
+
+                    } else {
+
+                        tokenInput.type = 'password';
+
+                        icon.classList.remove('fa-eye-slash');
+
+                        icon.classList.add('fa-eye');
+
+                    }
+
+                }
+            );
+
+            document.getElementById('btnRefresh').addEventListener('click', refreshData);
+
+            document.getElementById('btnCheckAll').addEventListener('click', checkAllClients);
+
+            document.getElementById('addForm').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') { e.preventDefault(); addClient(); }
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if ((e.key === 'F5') || (e.ctrlKey && e.key === 'r')) {
+                    e.preventDefault();
+                    refreshData();
+                }
+            });
+
+            loadClients(false);
+
+            setTimeout(function() { startAutoRefresh(); }, 1000);
+
+            setTimeout(function() {
+                document.getElementById('statTotal').classList.add('active-total');
+            }, 500);
+        });
+
+        // =====================================
+        // GLOBAL EXPOSURE
+        // =====================================
+        window.checkClient = checkClient;
+        window.deleteClient = deleteClient;
+        window.filterByStatus = filterByStatus;
+        window.clearFilter = clearFilter;
+        window.switchView = switchView;
+        window.applyDarkMode = applyDarkMode;
+        window.showToast = showToast;
+        window.refreshData = refreshData;
+    </script>
+
+</body>
+</html>
