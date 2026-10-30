@@ -58,7 +58,7 @@ public class WhatsAppBotMonitorService {
                 .build();
     }
 
-    // Load configured clients without overwriting existing DB tokens.
+    // Load configured clients without overwriting existing database tokens.
     @PostConstruct
     public void loadConfiguredClients() {
 
@@ -67,6 +67,7 @@ public class WhatsAppBotMonitorService {
 
         // Continue through gaps in configuration indexes.
         while (index < 100) {
+
             String prefix = "monitor.clients[" + index + "]";
 
             String name = environment.getProperty(prefix + ".name");
@@ -89,10 +90,12 @@ public class WhatsAppBotMonitorService {
                 client.setClientName(name);
                 client.setApiUrl(apiUrl);
 
+                // Use the configured token only when no database token exists.
                 if ((client.getToken() == null
                         || client.getToken().isBlank())
                         && configuredToken != null
                         && !configuredToken.isBlank()) {
+
                     client.setToken(configuredToken.trim());
                 }
 
@@ -105,7 +108,8 @@ public class WhatsAppBotMonitorService {
                 repository.save(client);
                 loadedCount++;
 
-                System.out.println("Monitor client loaded: " + name);
+                System.out.println(
+                        "Monitor client loaded: " + name);
 
             } catch (Exception e) {
                 System.err.println(
@@ -118,7 +122,8 @@ public class WhatsAppBotMonitorService {
                 "Configured monitor clients loaded: " + loadedCount);
     }
 
-    // Check all active clients.
+    // Check All button: check every active client immediately.
+    // Refresh the token if authentication is expired.
     public List<WhatsAppBotMonitor> checkAllClients() {
 
         List<WhatsAppBotMonitor> clients =
@@ -128,14 +133,17 @@ public class WhatsAppBotMonitorService {
 
         for (WhatsAppBotMonitor client : clients) {
             try {
-                results.add(checkClient(client));
+                results.add(checkAndRefreshIfExpired(client));
+
             } catch (Exception e) {
                 System.err.println(
-                        "Check failed for " + client.getClientName());
+                        "Check failed for " + client.getClientName()
+                                + ": " + e.getClass().getSimpleName());
 
                 client.setStatus(WhatsAppBotMonitor.API_ERROR);
-                client.setLastChecked(LocalDateTime.now(INDIA_ZONE));
-                client.setMessage("Monitoring error");
+                client.setLastChecked(
+                        LocalDateTime.now(INDIA_ZONE));
+                client.setMessage("Monitoring check failed");
 
                 results.add(repository.save(client));
             }
@@ -144,12 +152,13 @@ public class WhatsAppBotMonitorService {
         return results;
     }
 
-    // Check one client's All Chat API.
+    // Check one client's All Chat API and update its status.
     public WhatsAppBotMonitor checkClient(
             WhatsAppBotMonitor client) {
 
         long startTime = System.currentTimeMillis();
-        LocalDateTime checkTime = LocalDateTime.now(INDIA_ZONE);
+        LocalDateTime checkTime =
+                LocalDateTime.now(INDIA_ZONE);
 
         client.setLastChecked(checkTime);
         client.setStatus(WhatsAppBotMonitor.CHECKING);
@@ -158,9 +167,13 @@ public class WhatsAppBotMonitorService {
         try {
             if (client.getApiUrl() == null
                     || client.getApiUrl().isBlank()) {
+
                 return updateError(
-                        client, WhatsAppBotMonitor.API_ERROR,
-                        "API URL is missing", null, startTime);
+                        client,
+                        WhatsAppBotMonitor.API_ERROR,
+                        "API URL is missing",
+                        null,
+                        startTime);
             }
 
             HttpRequest.Builder builder = HttpRequest.newBuilder()
@@ -174,78 +187,95 @@ public class WhatsAppBotMonitorService {
 
                 String token = client.getToken().trim();
 
-                if (token.regionMatches(true, 0, "Bearer ", 0, 7)) {
+                // Avoid adding "Bearer" twice.
+                if (token.regionMatches(
+                        true, 0, "Bearer ", 0, 7)) {
                     token = token.substring(7).trim();
                 }
 
-                // Keep this if the API requires Bearer authentication.
                 builder.header("Authorization", "Bearer " + token);
             }
 
             HttpRequest request = builder.GET().build();
 
             HttpResponse<String> response = httpClient.send(
-                    request, HttpResponse.BodyHandlers.ofString());
+                    request,
+                    HttpResponse.BodyHandlers.ofString());
 
-            long responseTime = System.currentTimeMillis() - startTime;
+            long responseTime =
+                    System.currentTimeMillis() - startTime;
+
             int statusCode = response.statusCode();
 
             client.setStatusCode(statusCode);
             client.setResponseTime(responseTime);
 
+            // Only these responses trigger token refresh.
             if (statusCode == 401 || statusCode == 403) {
                 return updateError(
-                        client, WhatsAppBotMonitor.AUTH_EXPIRED,
+                        client,
+                        WhatsAppBotMonitor.AUTH_EXPIRED,
                         "Authentication expired or unauthorized",
-                        responseTime, startTime);
+                        responseTime,
+                        startTime);
             }
 
             if (statusCode < 200 || statusCode >= 300) {
                 return updateError(
-                        client, WhatsAppBotMonitor.API_ERROR,
+                        client,
+                        WhatsAppBotMonitor.API_ERROR,
                         "API returned HTTP " + statusCode,
-                        responseTime, startTime);
+                        responseTime,
+                        startTime);
             }
 
             String responseBody = response.body();
 
             if (responseBody == null || responseBody.isBlank()) {
                 return updateError(
-                        client, WhatsAppBotMonitor.API_ERROR,
+                        client,
+                        WhatsAppBotMonitor.API_ERROR,
                         "API returned empty response",
-                        responseTime, startTime);
+                        responseTime,
+                        startTime);
             }
 
             JsonNode root = objectMapper.readTree(responseBody);
             JsonNode resultArray = root.path("data").path("result");
 
             if (!resultArray.isArray() || resultArray.isEmpty()) {
+
                 client.setStatus(WhatsAppBotMonitor.NO_DATA);
                 client.setMessage("No chat activity data available");
                 client.setInactiveMinutes(null);
                 client.setLastChecked(checkTime);
+
                 return repository.save(client);
             }
 
             Instant latestActivity = findLatestUpdatedAt(resultArray);
 
             if (latestActivity == null) {
+
                 client.setStatus(WhatsAppBotMonitor.NO_DATA);
                 client.setMessage("No valid updatedAt found");
                 client.setInactiveMinutes(null);
                 client.setLastChecked(checkTime);
+
                 return repository.save(client);
             }
 
             long inactiveMinutes = Duration.between(
-                    latestActivity, Instant.now()).toMinutes();
+                    latestActivity,
+                    Instant.now()).toMinutes();
 
             if (inactiveMinutes < 0) {
                 inactiveMinutes = 0;
             }
 
             client.setLastActivity(
-                    latestActivity.atZone(INDIA_ZONE).toLocalDateTime());
+                    latestActivity.atZone(INDIA_ZONE)
+                            .toLocalDateTime());
 
             client.setInactiveMinutes(inactiveMinutes);
 
@@ -259,103 +289,151 @@ public class WhatsAppBotMonitorService {
             }
 
             client.setLastChecked(checkTime);
+
             return repository.save(client);
 
         } catch (DateTimeParseException e) {
+
             return updateError(
-                    client, WhatsAppBotMonitor.API_ERROR,
-                    "Invalid updatedAt format", null, startTime);
+                    client,
+                    WhatsAppBotMonitor.API_ERROR,
+                    "Invalid updatedAt format",
+                    null,
+                    startTime);
 
         } catch (InterruptedException e) {
+
             Thread.currentThread().interrupt();
 
             return updateError(
-                    client, WhatsAppBotMonitor.API_ERROR,
-                    "API request interrupted", null, startTime);
+                    client,
+                    WhatsAppBotMonitor.API_ERROR,
+                    "API request interrupted",
+                    null,
+                    startTime);
 
         } catch (Exception e) {
+
             System.err.println(
                     "API check failed for " + client.getClientName()
                             + ": " + e.getClass().getSimpleName());
 
             return updateError(
-                    client, WhatsAppBotMonitor.API_ERROR,
+                    client,
+                    WhatsAppBotMonitor.API_ERROR,
                     "Unable to connect to monitoring API",
-                    null, startTime);
+                    null,
+                    startTime);
         }
     }
 
-    // Refresh only clients currently marked AUTH_EXPIRED.
+    // Shared logic for the manual Check All action and scheduled checks.
+    private WhatsAppBotMonitor checkAndRefreshIfExpired(
+            WhatsAppBotMonitor client) {
+
+        // Always test the currently stored token against the live API first.
+        WhatsAppBotMonitor checked = checkClient(client);
+
+        // Do not refresh for ACTIVE, NO_DATA, NO_ACTIVITY or API_ERROR.
+        if (!WhatsAppBotMonitor.AUTH_EXPIRED.equals(
+                checked.getStatus())) {
+            return checked;
+        }
+
+        System.out.println(
+                "Authentication expired for "
+                        + checked.getClientName()
+                        + ". Attempting token refresh.");
+
+        try {
+            String newToken = tokenRefreshService.fetchNewToken(checked);
+
+            if (newToken == null || newToken.isBlank()) {
+
+                checked.setStatus(WhatsAppBotMonitor.AUTH_EXPIRED);
+                checked.setMessage(
+                        "Token refresh failed; previous token retained");
+
+                return repository.save(checked);
+            }
+
+            // Store the refreshed token for this client only.
+            checked.setToken(newToken.trim());
+            checked.setMessage(
+                    "Token refreshed; verifying All Chat API");
+
+            repository.save(checked);
+
+            // Verify the new token against the same client's All Chat API.
+            WhatsAppBotMonitor verification = checkClient(checked);
+
+            System.out.println(
+                    "Token verification for "
+                            + checked.getClientName()
+                            + ": " + verification.getStatus());
+
+            return verification;
+
+        } catch (Exception e) {
+
+            System.err.println(
+                    "Token refresh failed for "
+                            + checked.getClientName()
+                            + ": " + e.getClass().getSimpleName());
+
+            checked.setStatus(WhatsAppBotMonitor.AUTH_EXPIRED);
+            checked.setMessage(
+                    "Token refresh or verification failed");
+
+            return repository.save(checked);
+        }
+    }
+
+    // Run at 12 AM, 6 AM, 9 AM, 10 AM, 7 PM and 10 PM IST.
+    // At each scheduled time, check authentication first and refresh
+    // only when the All Chat API returns HTTP 401 or 403.
     @Scheduled(
-            fixedDelayString =
-                    "${whatsapp.monitor.token-refresh-fixed-delay:60000}")
+            cron = "0 0 0,6,9,10,19,22 * * *",
+            zone = "Asia/Kolkata")
     public void refreshExpiredTokens() {
 
         boolean enabled = environment.getProperty(
                 "whatsapp.monitor.token-refresh-enabled",
                 Boolean.class,
-                false);
+                true);
 
         if (!enabled) {
+            System.out.println("Scheduled token checks are disabled.");
             return;
         }
 
-        System.out.println("Token refresh job started: "
-                + LocalDateTime.now(INDIA_ZONE));
+        System.out.println(
+                "Scheduled monitoring job started: "
+                        + LocalDateTime.now(INDIA_ZONE));
 
         List<WhatsAppBotMonitor> clients =
                 repository.findByActiveTrue();
 
         for (WhatsAppBotMonitor client : clients) {
-
-            if (!WhatsAppBotMonitor.AUTH_EXPIRED.equals(
-                    client.getStatus())) {
-                continue;
-            }
-
-            System.out.println(
-                    "Refreshing expired token for "
-                            + client.getClientName());
-
             try {
-                String newToken =
-                        tokenRefreshService.fetchNewToken(client);
-
-                if (newToken == null || newToken.isBlank()) {
-                    client.setStatus(WhatsAppBotMonitor.AUTH_EXPIRED);
-                    client.setMessage(
-                            "Login failed; previous token retained");
-                    repository.save(client);
-                    continue;
-                }
-
-                // Save only this client's new token.
-                client.setToken(newToken.trim());
-                client.setMessage(
-                        "New token received; verifying All Chat");
-                repository.save(client);
-
-                // Verify against this client's own All Chat API.
-                WhatsAppBotMonitor result = checkClient(client);
+                WhatsAppBotMonitor result =
+                        checkAndRefreshIfExpired(client);
 
                 System.out.println(
-                        "Verification result for "
+                        "Scheduled check completed for "
                                 + client.getClientName()
                                 + ": " + result.getStatus());
 
             } catch (Exception e) {
-                System.err.println(
-                        "Refresh failed for " + client.getClientName()
-                                + ": " + e.getClass().getSimpleName());
 
-                client.setStatus(WhatsAppBotMonitor.AUTH_EXPIRED);
-                client.setMessage(
-                        "Token refresh or verification failed");
-                repository.save(client);
+                System.err.println(
+                        "Scheduled check failed for "
+                                + client.getClientName()
+                                + ": " + e.getClass().getSimpleName());
             }
         }
 
-        System.out.println("Token refresh job completed.");
+        System.out.println("Scheduled monitoring job completed.");
     }
 
     private Instant findLatestUpdatedAt(JsonNode resultArray) {
@@ -363,6 +441,7 @@ public class WhatsAppBotMonitorService {
         Instant latest = null;
 
         for (JsonNode item : resultArray) {
+
             String updatedAt = item.path("updatedAt").asText(null);
 
             if (updatedAt == null || updatedAt.isBlank()) {
@@ -377,7 +456,8 @@ public class WhatsAppBotMonitorService {
                 }
 
             } catch (DateTimeParseException e) {
-                System.err.println("Invalid updatedAt value skipped.");
+                System.err.println(
+                        "Invalid updatedAt value skipped.");
             }
         }
 

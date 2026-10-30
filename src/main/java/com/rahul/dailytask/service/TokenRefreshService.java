@@ -37,10 +37,18 @@ public class TokenRefreshService {
                 .build();
     }
 
+    /**
+     * Logs in for the specified client and extracts a new token.
+     * Returns null if login fails or no supported token field is found.
+     */
     public String fetchNewToken(WhatsAppBotMonitor client) {
 
-        if (client == null || client.getClientName() == null) {
-            System.err.println("Token refresh skipped: client missing.");
+        if (client == null
+                || client.getClientName() == null
+                || client.getClientName().isBlank()) {
+
+            System.err.println(
+                    "Token refresh skipped: client name is missing.");
             return null;
         }
 
@@ -48,7 +56,8 @@ public class TokenRefreshService {
 
         if (prefix == null) {
             System.err.println(
-                    "No configuration found for " + client.getClientName());
+                    "No configuration found for "
+                            + client.getClientName());
             return null;
         }
 
@@ -57,16 +66,19 @@ public class TokenRefreshService {
         String password = getProperty(prefix + ".auth-password");
         String basicAuth = getProperty(prefix + ".auth-basic");
 
-        if (isBlank(authUrl) || isBlank(email) || isBlank(password)
+        if (isBlank(authUrl)
+                || isBlank(email)
+                || isBlank(password)
                 || "CHANGE_ME".equalsIgnoreCase(password)) {
 
             System.err.println(
-                    "Login configuration missing or using placeholder for "
+                    "Login configuration missing or using a placeholder for "
                             + client.getClientName());
             return null;
         }
 
         try {
+            // Build login request JSON.
             String requestBody = objectMapper.createObjectNode()
                     .put("email", email)
                     .put("password", password)
@@ -79,12 +91,14 @@ public class TokenRefreshService {
                     .header("Content-Type", "application/json")
                     .header("User-Agent", "DailyTaskManager");
 
+            // Add Basic Auth only when configured.
             if (!isBlank(basicAuth)
                     && !"CHANGE_ME".equalsIgnoreCase(basicAuth)) {
 
                 String value = basicAuth.trim();
 
-                if (value.regionMatches(true, 0, "Basic ", 0, 6)) {
+                if (value.regionMatches(
+                        true, 0, "Basic ", 0, 6)) {
                     value = value.substring(6).trim();
                 }
 
@@ -93,7 +107,8 @@ public class TokenRefreshService {
 
             HttpRequest request = builder
                     .POST(HttpRequest.BodyPublishers.ofString(
-                            requestBody, StandardCharsets.UTF_8))
+                            requestBody,
+                            StandardCharsets.UTF_8))
                     .build();
 
             HttpResponse<String> response = httpClient.send(
@@ -101,46 +116,53 @@ public class TokenRefreshService {
                     HttpResponse.BodyHandlers.ofString(
                             StandardCharsets.UTF_8));
 
-            System.out.println("Login API HTTP status for "
-                    + client.getClientName() + ": "
-                    + response.statusCode());
+            int statusCode = response.statusCode();
 
-            if (response.statusCode() < 200
-                    || response.statusCode() >= 300) {
+            System.out.println(
+                    "Login API HTTP status for "
+                            + client.getClientName()
+                            + ": " + statusCode);
 
-                System.err.println("Login API failed for "
-                        + client.getClientName()
-                        + ". HTTP " + response.statusCode());
-
+            if (statusCode < 200 || statusCode >= 300) {
+                System.err.println(
+                        "Login API failed for "
+                                + client.getClientName()
+                                + ". HTTP " + statusCode);
                 return null;
             }
 
             String body = response.body();
 
             if (isBlank(body)) {
-                System.err.println("Login API returned an empty response for "
-                        + client.getClientName());
+                System.err.println(
+                        "Login API returned an empty response for "
+                                + client.getClientName());
                 return null;
             }
 
             JsonNode root = objectMapper.readTree(body);
             JsonNode data = root.path("data");
 
-            // Diagnostic logs: field names only, never token values.
-            System.out.println("Login response root fields for "
-                    + client.getClientName() + ": " + fieldNames(root));
+            // Log response field names only, never token values.
+            System.out.println(
+                    "Login response root fields for "
+                            + client.getClientName()
+                            + ": " + fieldNames(root));
 
-            System.out.println("Login response data fields for "
-                    + client.getClientName() + ": " + fieldNames(data));
+            System.out.println(
+                    "Login response data fields for "
+                            + client.getClientName()
+                            + ": " + fieldNames(data));
 
-            System.out.println("Token field checks for "
-                    + client.getClientName()
-                    + ": data.authToken=" + hasText(data, "authToken")
-                    + ", data.token=" + hasText(data, "token")
-                    + ", data.accessToken=" + hasText(data, "accessToken")
-                    + ", root.authToken=" + hasText(root, "authToken")
-                    + ", root.token=" + hasText(root, "token")
-                    + ", root.accessToken=" + hasText(root, "accessToken"));
+            System.out.println(
+                    "Token field checks for "
+                            + client.getClientName()
+                            + ": data.authToken=" + hasText(data, "authToken")
+                            + ", data.token=" + hasText(data, "token")
+                            + ", data.accessToken=" + hasText(data, "accessToken")
+                            + ", root.authToken=" + hasText(root, "authToken")
+                            + ", root.token=" + hasText(root, "token")
+                            + ", root.accessToken=" + hasText(root, "accessToken"));
 
             // Try common token field names.
             String[] tokenFields = {
@@ -157,8 +179,8 @@ public class TokenRefreshService {
 
             if (tokenNode == null) {
                 System.err.println(
-                        "Login returned HTTP success, but no supported "
-                                + "token field was found for "
+                        "Login succeeded, but no supported token field "
+                                + "was found for "
                                 + client.getClientName());
                 return null;
             }
@@ -166,31 +188,43 @@ public class TokenRefreshService {
             String token = normalizeToken(tokenNode.asText());
 
             if (isBlank(token)) {
-                System.err.println("Extracted token is empty for "
-                        + client.getClientName());
+                System.err.println(
+                        "Extracted token is empty for "
+                                + client.getClientName());
                 return null;
             }
 
-            System.out.println("Token received for "
-                    + client.getClientName()
-                    + ". Value not logged.");
+            System.out.println(
+                    "Token received for "
+                            + client.getClientName()
+                            + ". Value not logged.");
 
             return token;
 
         } catch (InterruptedException e) {
+
             Thread.currentThread().interrupt();
-            System.err.println("Login request interrupted for "
-                    + client.getClientName());
+
+            System.err.println(
+                    "Login request interrupted for "
+                            + client.getClientName());
+
             return null;
 
         } catch (Exception e) {
-            System.err.println("Token refresh failed for "
-                    + client.getClientName()
-                    + ": " + e.getClass().getSimpleName());
+
+            System.err.println(
+                    "Token refresh failed for "
+                            + client.getClientName()
+                            + ": " + e.getClass().getSimpleName());
+
             return null;
         }
     }
 
+    /**
+     * Finds a non-empty textual token field in the supplied JSON object.
+     */
     private JsonNode findTokenNode(
             JsonNode parent,
             String[] fields) {
@@ -210,6 +244,9 @@ public class TokenRefreshService {
         return null;
     }
 
+    /**
+     * Returns JSON object field names without exposing field values.
+     */
     private String fieldNames(JsonNode node) {
 
         if (node == null || !node.isObject()) {
@@ -222,19 +259,35 @@ public class TokenRefreshService {
         return names.toString();
     }
 
-    private boolean hasText(JsonNode node, String field) {
+    /**
+     * Checks whether a JSON field contains non-empty text.
+     */
+    private boolean hasText(
+            JsonNode node,
+            String field) {
+
+        if (node == null || !node.isObject()) {
+            return false;
+        }
 
         JsonNode value = node.path(field);
 
-        return value.isTextual() && !value.asText().isBlank();
+        return value.isTextual() && !isBlank(value.asText());
     }
 
+    /**
+     * Finds the configuration prefix matching the client name.
+     *
+     * Example:
+     * monitor.clients[0].name=KIMS KSA
+     */
     private String findClientPrefix(String clientName) {
 
         for (int index = 0; index < 100; index++) {
 
             String prefix = "monitor.clients[" + index + "]";
-            String configuredName = getProperty(prefix + ".name");
+            String configuredName =
+                    getProperty(prefix + ".name");
 
             if (isBlank(configuredName)) {
                 continue;
@@ -248,6 +301,9 @@ public class TokenRefreshService {
         return null;
     }
 
+    /**
+     * Reads a Spring configuration property and trims whitespace.
+     */
     private String getProperty(String key) {
 
         String value = environment.getProperty(key);
@@ -255,6 +311,9 @@ public class TokenRefreshService {
         return value == null ? null : value.trim();
     }
 
+    /**
+     * Removes a leading Bearer prefix if the login response includes one.
+     */
     private String normalizeToken(String token) {
 
         if (token == null) {
@@ -263,7 +322,8 @@ public class TokenRefreshService {
 
         String normalized = token.trim();
 
-        if (normalized.regionMatches(true, 0, "Bearer ", 0, 7)) {
+        if (normalized.regionMatches(
+                true, 0, "Bearer ", 0, 7)) {
             normalized = normalized.substring(7).trim();
         }
 
@@ -271,7 +331,6 @@ public class TokenRefreshService {
     }
 
     private boolean isBlank(String value) {
-
         return value == null || value.isBlank();
     }
 }
